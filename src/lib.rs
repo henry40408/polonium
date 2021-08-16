@@ -1,13 +1,13 @@
 #![deny(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_import_braces,
-    unused_qualifications
+missing_docs,
+missing_debug_implementations,
+missing_copy_implementations,
+trivial_casts,
+trivial_numeric_casts,
+unsafe_code,
+unstable_features,
+unused_import_braces,
+unused_qualifications
 )]
 
 //! Polonium is Pushover API wrapper with attachment support in Rust 2018 edition
@@ -168,7 +168,11 @@ impl<'a> Notification<'a> {
     }
 
     async fn send(&self) -> Result<Response, NotificationError> {
-        let form = multipart::Form::new();
+        let form = multipart::Form::new()
+            .text("token", self.request.token.to_string())
+            .text("user", self.request.user.to_string())
+            .text("message", self.request.message.to_string());
+
         let uri = format!("{0}/1/messages.json", server_url());
         let client = reqwest::Client::new();
         let body = client
@@ -181,6 +185,14 @@ impl<'a> Notification<'a> {
         match serde_json::from_str(&body) {
             Ok(r) => Ok(r),
             Err(e) => Err(NotificationError::DeserializeError(e)),
+        }
+    }
+
+    fn append_part<T: ToString>(form: multipart::Form, name: &'static str, value: Option<&T>) -> multipart::Form {
+        if let Some(v) = value {
+            form.text(name, v.to_string())
+        } else {
+            form
         }
     }
 }
