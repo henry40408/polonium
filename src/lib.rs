@@ -1,20 +1,21 @@
 #![deny(
-missing_docs,
-missing_debug_implementations,
-missing_copy_implementations,
-trivial_casts,
-trivial_numeric_casts,
-unsafe_code,
-unstable_features,
-unused_import_braces,
-unused_qualifications
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
+    unused_qualifications
 )]
 
 //! Polonium is Pushover API wrapper with attachment support in Rust 2018 edition
 
+use std::borrow::Cow;
+
 use reqwest::multipart;
 use serde::Deserialize;
-use std::borrow::Cow;
 use thiserror::Error;
 
 /// Request to Pushover
@@ -173,6 +174,8 @@ impl<'a> Notification<'a> {
             .text("user", self.request.user.to_string())
             .text("message", self.request.message.to_string());
 
+        let form = Self::append_part(form, "device", self.request.device.as_ref());
+
         let uri = format!("{0}/1/messages.json", server_url());
         let client = reqwest::Client::new();
         let body = client
@@ -188,7 +191,11 @@ impl<'a> Notification<'a> {
         }
     }
 
-    fn append_part<T: ToString>(form: multipart::Form, name: &'static str, value: Option<&T>) -> multipart::Form {
+    fn append_part<T: ToString>(
+        form: multipart::Form,
+        name: &'static str,
+        value: Option<&T>,
+    ) -> multipart::Form {
         if let Some(v) = value {
             form.text(name, v.to_string())
         } else {
@@ -206,8 +213,9 @@ struct Response {
 
 #[cfg(test)]
 mod tests {
+    use mockito::{mock, Mock};
+
     use crate::{Notification, NotificationError};
-    use mockito::mock;
 
     #[test]
     fn test_new() {
@@ -225,6 +233,24 @@ mod tests {
         assert_eq!(1, res.status);
         assert_eq!("647d2300-702c-4b38-8b2f-d56326ae460b", res.request);
         assert!(res.errors.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_device() -> Result<(), NotificationError> {
+        let _m = mock("POST", "/1/messages.json")
+            .with_status(200)
+            .with_body(r#"{"status":1,"request":"647d2300-702c-4b38-8b2f-d56326ae460b"}"#)
+            .create();
+
+        let mut n = build_notification();
+        n.request.device = Some("device".into());
+
+        let res = n.send().await?;
+        assert_eq!(1, res.status);
+        assert_eq!("647d2300-702c-4b38-8b2f-d56326ae460b", res.request);
+        assert!(res.errors.is_none());
+
         Ok(())
     }
 
