@@ -2,6 +2,8 @@
 name = "polonium"
 version = "0.1.0"
 edition = "2018"
+description = "Polonium is Pushover API wrapper with attachment support in Rust 2018 edition"
+authors = ["Heng-Yi Wu <2316687+henry40408@users.noreply.github.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
