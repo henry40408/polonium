@@ -12,19 +12,22 @@
 
 //! Polonium is Pushover API wrapper with attachment support in Rust 2018 edition
 
+use std::borrow::Cow;
+
 /// Request to Pushover
 /// ref: https://pushover.net/api#messages
+#[derive(Default)]
 struct Request<'a> {
     /// Required. API token
-    token: &'a str,
+    token: Cow<'a, str>,
     /// Required. User key
-    user: &'a str,
+    user: Cow<'a, str>,
     /// Required. Message
-    message: &'a str,
+    message: Cow<'a, str>,
     /// Optional. Device
-    device: Option<&'a str>,
+    device: Option<Cow<'a, str>>,
     /// Optional. Title
-    title: Option<&'a str>,
+    title: Option<Cow<'a, str>>,
     /// Optional. Render as HTML?
     html: Option<HTML>,
     /// Optional. Render with monospace font?
@@ -34,9 +37,9 @@ struct Request<'a> {
     /// Optional. Priority
     priority: Option<Priority>,
     /// Optional. URL
-    url: Option<&'a str>,
+    url: Option<Cow<'a, str>>,
     /// Optional. URL title
-    url_title: Option<&'a str>,
+    url_title: Option<Cow<'a, str>>,
     /// Optional. Sound
     sound: Option<Sound>,
 }
@@ -117,14 +120,39 @@ enum Sound {
 }
 
 struct Attachment<'a> {
-    filename: &'a str,
-    mime_type: &'a str,
+    filename: Cow<'a, str>,
+    mime_type: Cow<'a, str>,
     content: &'a [u8],
 }
 
+#[derive(Default)]
 struct Notification<'a> {
-    request: &'a Request<'a>,
-    attachment: &'a Attachment<'a>,
+    request: Request<'a>,
+    attachment: Option<&'a Attachment<'a>>,
+}
+
+#[cfg(test)]
+fn server_url() -> String {
+    mockito::server_url()
+}
+
+#[cfg(not(test))]
+fn server_url() -> String {
+    "https://api.pushover.net".to_string()
+}
+
+impl<'a> Notification<'a> {
+    fn new(token: &'a str, user: &'a str, message: &'a str) -> Self {
+        Self {
+            request: Request {
+                token: Cow::from(token),
+                user: Cow::from(user),
+                message: Cow::from(message),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
 }
 
 struct Response<'a> {
@@ -135,8 +163,14 @@ struct Response<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::Notification;
+    use mockito::mock;
+
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    fn test_new() {
+        let user = "user";
+        let token = "token";
+        let message = "message";
+        Notification::new(token, user, message);
     }
 }
