@@ -1,3 +1,17 @@
+#![deny(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
+    unused_qualifications
+)]
+
+//! Polonium is Pushover API wrapper with attachment support in Rust 2018 edition
+
 /// Request to Pushover
 /// ref: https://pushover.net/api#messages
 struct Request<'a> {
@@ -100,6 +114,23 @@ enum Sound {
     Vibrate,
     /// none - None (silent)
     None,
+}
+
+struct Attachment<'a> {
+    filename: &'a str,
+    mime_type: &'a str,
+    content: &'a [u8],
+}
+
+struct Notification<'a> {
+    request: &'a Request<'a>,
+    attachment: &'a Attachment<'a>,
+}
+
+struct Response<'a> {
+    status_code: u8,
+    request: &'a str,
+    errors: &'a [&'a str],
 }
 
 #[cfg(test)]
