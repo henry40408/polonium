@@ -12,7 +12,10 @@
 
 //! Polonium is Pushover API wrapper with attachment support in Rust 2018 edition
 
+use reqwest::multipart;
+use serde::Deserialize;
 use std::borrow::Cow;
+use thiserror::Error;
 
 /// Request to Pushover
 /// ref: https://pushover.net/api#messages
@@ -141,6 +144,16 @@ fn server_url() -> String {
     "https://api.pushover.net".to_string()
 }
 
+#[derive(Error, Debug)]
+enum NotificationError {
+    #[error("reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("deserialization error: {0}")]
+    DeserializeError(#[from] serde_json::Error),
+    #[error("unknown")]
+    Unknown,
+}
+
 impl<'a> Notification<'a> {
     fn new(token: &'a str, user: &'a str, message: &'a str) -> Self {
         Self {
@@ -153,24 +166,60 @@ impl<'a> Notification<'a> {
             ..Default::default()
         }
     }
+
+    async fn send(&self) -> Result<Response, NotificationError> {
+        let form = multipart::Form::new();
+        let uri = format!("{0}/1/messages.json", server_url());
+        let client = reqwest::Client::new();
+        let body = client
+            .post(&uri)
+            .multipart(form)
+            .send()
+            .await?
+            .text()
+            .await?;
+        match serde_json::from_str(&body) {
+            Ok(r) => Ok(r),
+            Err(e) => Err(NotificationError::DeserializeError(e)),
+        }
+    }
 }
 
-struct Response<'a> {
-    status_code: u8,
-    request: &'a str,
-    errors: &'a [&'a str],
+#[derive(Deserialize)]
+struct Response {
+    status: u8,
+    request: String,
+    errors: Option<Vec<String>>,
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Notification;
+    use crate::{Notification, NotificationError};
     use mockito::mock;
 
     #[test]
     fn test_new() {
+        build_notification();
+    }
+
+    #[tokio::test]
+    async fn test_send() -> Result<(), NotificationError> {
+        let _m = mock("POST", "/1/messages.json")
+            .with_status(200)
+            .with_body(r#"{"status":1,"request":"647d2300-702c-4b38-8b2f-d56326ae460b"}"#)
+            .create();
+        let n = build_notification();
+        let res = n.send().await?;
+        assert_eq!(1, res.status);
+        assert_eq!("647d2300-702c-4b38-8b2f-d56326ae460b", res.request);
+        assert!(res.errors.is_none());
+        Ok(())
+    }
+
+    fn build_notification<'a>() -> Notification<'a> {
         let user = "user";
         let token = "token";
         let message = "message";
-        Notification::new(token, user, message);
+        Notification::new(token, user, message)
     }
 }
