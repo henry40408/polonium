@@ -50,30 +50,44 @@ struct Request<'a> {
 
 /// Render in HTML
 /// ref: https://pushover.net/api#html
+#[derive(strum::ToString)]
 enum HTML {
+    #[strum(serialize = "0")]
     None,
+    #[strum(serialize = "1")]
     Enabled,
 }
 
 /// Render with monospace
 /// ref: https://pushover.net/api#html
+#[derive(strum::ToString)]
 enum Monospace {
+    #[strum(serialize = "0")]
     None,
+    #[strum(serialize = "1")]
     Enabled,
 }
 
 /// Priority
 /// ref: https://pushover.net/api#priority
+#[derive(strum::ToString)]
 enum Priority {
+    #[strum(serialize = "0")]
     Normal,
+    #[strum(serialize = "-2")]
     Lowest,
+    #[strum(serialize = "-1")]
     Low,
+    #[strum(serialize = "1")]
     High,
+    #[strum(serialize = "2")]
     Emergency,
 }
 
 /// Sound
 /// ref: https://pushover.net/api#sounds
+#[derive(strum::ToString)]
+#[strum(serialize_all = "lowercase")]
 enum Sound {
     /// pushover - Pushover (default)
     Pushover,
@@ -175,6 +189,14 @@ impl<'a> Notification<'a> {
             .text("message", self.request.message.to_string());
 
         let form = Self::append_part(form, "device", self.request.device.as_ref());
+        let form = Self::append_part(form, "title", self.request.title.as_ref());
+        let form = Self::append_part(form, "html", self.request.html.as_ref());
+        let form = Self::append_part(form, "monospace", self.request.monospace.as_ref());
+        let form = Self::append_part(form, "timestamp", self.request.timestamp.as_ref());
+        let form = Self::append_part(form, "priority", self.request.priority.as_ref());
+        let form = Self::append_part(form, "url", self.request.url.as_ref());
+        let form = Self::append_part(form, "url_title", self.request.url_title.as_ref());
+        let form = Self::append_part(form, "sound", self.request.sound.as_ref());
 
         let uri = format!("{0}/1/messages.json", server_url());
         let client = reqwest::Client::new();
@@ -213,9 +235,9 @@ struct Response {
 
 #[cfg(test)]
 mod tests {
-    use mockito::{mock, Mock};
+    use mockito::mock;
 
-    use crate::{Notification, NotificationError};
+    use crate::{Monospace, Notification, NotificationError, Priority, Sound, HTML};
 
     #[test]
     fn test_new() {
@@ -259,5 +281,53 @@ mod tests {
         let token = "token";
         let message = "message";
         Notification::new(token, user, message)
+    }
+
+    #[test]
+    fn test_html() {
+        assert_eq!("0", HTML::None.to_string());
+        assert_eq!("1", HTML::Enabled.to_string());
+    }
+
+    #[test]
+    fn test_monospace() {
+        assert_eq!("0", Monospace::None.to_string());
+        assert_eq!("1", Monospace::Enabled.to_string());
+    }
+
+    #[test]
+    fn test_priority() {
+        assert_eq!("-2", Priority::Lowest.to_string());
+        assert_eq!("-1", Priority::Low.to_string());
+        assert_eq!("0", Priority::Normal.to_string());
+        assert_eq!("1", Priority::High.to_string());
+        assert_eq!("2", Priority::Emergency.to_string());
+    }
+
+    #[test]
+    fn test_sound() {
+        assert_eq!("pushover", Sound::Pushover.to_string());
+        assert_eq!("bike", Sound::Bike.to_string());
+        assert_eq!("bugle", Sound::Bugle.to_string());
+        assert_eq!("cashregister", Sound::CashRegister.to_string());
+        assert_eq!("classical", Sound::Classical.to_string());
+        assert_eq!("cosmic", Sound::Cosmic.to_string());
+        assert_eq!("falling", Sound::Falling.to_string());
+        assert_eq!("gamelan", Sound::GameLan.to_string());
+        assert_eq!("incoming", Sound::Incoming.to_string());
+        assert_eq!("intermission", Sound::Intermission.to_string());
+        assert_eq!("magic", Sound::Magic.to_string());
+        assert_eq!("mechanical", Sound::Mechanical.to_string());
+        assert_eq!("pianobar", Sound::PianoBar.to_string());
+        assert_eq!("siren", Sound::Siren.to_string());
+        assert_eq!("spacealarm", Sound::SpaceAlarm.to_string());
+        assert_eq!("tugboat", Sound::Tugboat.to_string());
+        assert_eq!("alien", Sound::Alien.to_string());
+        assert_eq!("climb", Sound::Climb.to_string());
+        assert_eq!("persistent", Sound::Persistent.to_string());
+        assert_eq!("echo", Sound::Echo.to_string());
+        assert_eq!("updown", Sound::UpDown.to_string());
+        assert_eq!("vibrate", Sound::Vibrate.to_string());
+        assert_eq!("none", Sound::None.to_string());
     }
 }
