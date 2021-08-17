@@ -18,6 +18,10 @@ use reqwest::{multipart, Url};
 use serde::Deserialize;
 use thiserror::Error;
 
+mod attachment;
+
+use attachment::{Attachment, AttachmentError};
+
 /// Request to Pushover
 /// ref: https://pushover.net/api#messages
 #[derive(Default)]
@@ -138,47 +142,13 @@ enum Sound {
 }
 
 #[derive(Error, Debug)]
-enum AttachmentError {
+enum NotificationError {
     #[error("reqwest error: {0}")]
     ReqwestError(#[from] reqwest::Error),
-    #[error("URL error: {0}")]
-    UrlError(#[from] url::ParseError),
-    #[error("unknown MIME type")]
-    MIMEInferError,
-}
-
-struct Attachment {
-    filename: String,
-    mime_type: String,
-    content: Vec<u8>,
-}
-
-impl Attachment {
-    fn new(filename: &str, mime_type: &str, content: &[u8]) -> Self {
-        Self {
-            filename: filename.into(),
-            mime_type: mime_type.into(),
-            content: content.into(),
-        }
-    }
-
-    async fn from_url(url: &str) -> Result<Self, AttachmentError> {
-        let parsed = Url::parse(url)?;
-        let filename = parsed
-            .path_segments()
-            .map_or("filename", |t| t.last().map_or("filename", |t1| t1));
-
-        let res = reqwest::get(url).await?;
-        let buffer = res.bytes().await?.to_vec();
-
-        let mime_type = infer::get(&buffer).ok_or(AttachmentError::MIMEInferError)?;
-
-        Ok(Self {
-            filename: filename.to_string(),
-            mime_type: mime_type.to_string(),
-            content: buffer,
-        })
-    }
+    #[error("deserialization error: {0}")]
+    DeserializeError(#[from] serde_json::Error),
+    #[error("unknown")]
+    Unknown,
 }
 
 #[derive(Default)]
@@ -195,16 +165,6 @@ fn server_url() -> String {
 #[cfg(not(test))]
 fn server_url() -> String {
     "https://api.pushover.net".to_string()
-}
-
-#[derive(Error, Debug)]
-enum NotificationError {
-    #[error("reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
-    #[error("deserialization error: {0}")]
-    DeserializeError(#[from] serde_json::Error),
-    #[error("unknown")]
-    Unknown,
 }
 
 impl<'a> Notification<'a> {
@@ -279,10 +239,7 @@ struct Response {
 mod tests {
     use mockito::mock;
 
-    use crate::{
-        Attachment, AttachmentError, Monospace, Notification, NotificationError, Priority, Sound,
-        HTML,
-    };
+    use crate::{Monospace, Notification, NotificationError, Priority, Sound, HTML};
 
     #[test]
     fn test_new() {
@@ -374,27 +331,5 @@ mod tests {
         assert_eq!("updown", Sound::UpDown.to_string());
         assert_eq!("vibrate", Sound::Vibrate.to_string());
         assert_eq!("none", Sound::None.to_string());
-    }
-
-    #[test]
-    fn test_attachment_new() {
-        Attachment::new("filename", "plain/text", &[]);
-    }
-
-    #[test]
-    fn test_attach() {
-        let mut n = build_notification();
-        let a = Attachment::new("filename", "plain/text", &[]);
-        n.attach(&a);
-    }
-
-    #[tokio::test]
-    async fn test_attach_url() -> Result<(), AttachmentError> {
-        let u = "https://upload.wikimedia.org/wikipedia/commons/1/1a/1x1_placeholder.png";
-        let a = Attachment::from_url(u).await?;
-        assert_eq!("1x1_placeholder.png", a.filename);
-        assert_eq!("image/png", a.mime_type);
-        assert!(a.content.len() > 0);
-        Ok(())
     }
 }
