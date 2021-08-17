@@ -58,8 +58,9 @@ impl Attachment {
 
 #[cfg(test)]
 mod tests {
-    use crate::Notification;
+    use crate::server_url;
     use crate::{Attachment, AttachmentError};
+    use mockito::mock;
 
     #[test]
     fn test_attachment_new() {
@@ -68,18 +69,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_attach_url() -> Result<(), AttachmentError> {
-        let u = "https://upload.wikimedia.org/wikipedia/commons/1/1a/1x1_placeholder.png";
-        let a = Attachment::from_url(u).await?;
-        assert_eq!("1x1_placeholder.png", a.filename);
+        let _n = mock("GET", "/filename.png")
+            .with_status(200)
+            .with_body(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+            .create();
+
+        let u = format!("{}/filename.png", server_url());
+        let a = Attachment::from_url(&u).await?;
+        assert_eq!("filename.png", a.filename);
         assert_eq!("image/png", a.mime_type);
         assert!(a.content.len() > 0);
         Ok(())
-    }
-
-    fn build_notification<'a>() -> Notification<'a> {
-        let user = "user";
-        let token = "token";
-        let message = "message";
-        Notification::new(token, user, message)
     }
 }
