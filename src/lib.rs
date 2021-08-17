@@ -143,6 +143,16 @@ struct Attachment<'a> {
     content: &'a [u8],
 }
 
+impl<'a> Attachment<'a> {
+    fn new(filename: &'a str, mime_type: &'a str, content: &'a [u8]) -> Self {
+        Self {
+            filename: filename.into(),
+            mime_type: mime_type.into(),
+            content,
+        }
+    }
+}
+
 #[derive(Default)]
 struct Notification<'a> {
     request: Request<'a>,
@@ -180,6 +190,10 @@ impl<'a> Notification<'a> {
             },
             ..Default::default()
         }
+    }
+
+    fn attach(&mut self, attachment: &'a Attachment<'a>) {
+        self.attachment = Some(attachment);
     }
 
     async fn send(&self) -> Result<Response, NotificationError> {
@@ -237,7 +251,7 @@ struct Response {
 mod tests {
     use mockito::mock;
 
-    use crate::{Monospace, Notification, NotificationError, Priority, Sound, HTML};
+    use crate::{Attachment, Monospace, Notification, NotificationError, Priority, Sound, HTML};
 
     #[test]
     fn test_new() {
@@ -329,5 +343,17 @@ mod tests {
         assert_eq!("updown", Sound::UpDown.to_string());
         assert_eq!("vibrate", Sound::Vibrate.to_string());
         assert_eq!("none", Sound::None.to_string());
+    }
+
+    #[test]
+    fn test_attachment_new() {
+        Attachment::new("filename", "plain/text", &[]);
+    }
+
+    #[test]
+    fn test_attach() {
+        let mut n = build_notification();
+        let a = Attachment::new("filename", "plain/text", &[]);
+        n.attach(&a);
     }
 }
