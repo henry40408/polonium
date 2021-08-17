@@ -14,7 +14,7 @@
 
 use std::borrow::Cow;
 
-use reqwest::{multipart, Url};
+use reqwest::multipart;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -147,8 +147,8 @@ enum NotificationError {
     ReqwestError(#[from] reqwest::Error),
     #[error("deserialization error: {0}")]
     DeserializeError(#[from] serde_json::Error),
-    #[error("unknown")]
-    Unknown,
+    #[error("attachment error: {0}")]
+    AttachmentError(#[from] AttachmentError),
 }
 
 #[derive(Default)]
@@ -184,7 +184,7 @@ impl<'a> Notification<'a> {
         self.attachment = Some(attachment);
     }
 
-    async fn send(&self) -> Result<Response, NotificationError> {
+    async fn send(&'a self) -> Result<Response, NotificationError> {
         let form = multipart::Form::new()
             .text("token", self.request.token.to_string())
             .text("user", self.request.user.to_string())
@@ -199,6 +199,15 @@ impl<'a> Notification<'a> {
         let form = Self::append_part(form, "url", self.request.url.as_ref());
         let form = Self::append_part(form, "url_title", self.request.url_title.as_ref());
         let form = Self::append_part(form, "sound", self.request.sound.as_ref());
+
+        let form = if let Some(a) = self.attachment {
+            let part = multipart::Part::bytes(a.content.clone())
+                .file_name(a.filename.to_string())
+                .mime_str(a.mime_type.as_str())?;
+            form.part("attachment", part)
+        } else {
+            form
+        };
 
         let uri = format!("{0}/1/messages.json", server_url());
         let client = reqwest::Client::new();
@@ -239,7 +248,8 @@ struct Response {
 mod tests {
     use mockito::mock;
 
-    use crate::{Monospace, Notification, NotificationError, Priority, Sound, HTML};
+    use crate::attachment::Attachment;
+    use crate::{server_url, Monospace, Notification, NotificationError, Priority, Sound, HTML};
 
     #[test]
     fn test_new() {
@@ -331,5 +341,50 @@ mod tests {
         assert_eq!("updown", Sound::UpDown.to_string());
         assert_eq!("vibrate", Sound::Vibrate.to_string());
         assert_eq!("none", Sound::None.to_string());
+    }
+
+    #[tokio::test]
+    async fn test_attach_and_send() -> Result<(), NotificationError> {
+        let _m = mock("POST", "/1/messages.json")
+            .with_status(200)
+            .with_body(r#"{"status":1,"request":"647d2300-702c-4b38-8b2f-d56326ae460b"}"#)
+            .create();
+
+        let mut n = build_notification();
+        let a = Attachment::new("filename", "plain/text", &[]);
+        n.attach(&a);
+
+        let res = n.send().await?;
+        assert_eq!(1, res.status);
+        assert_eq!("647d2300-702c-4b38-8b2f-d56326ae460b", res.request);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_attach_url_and_send() -> Result<(), NotificationError> {
+        let _m = mock("POST", "/1/messages.json")
+            .with_status(200)
+            .with_body(r#"{"status":1,"request":"647d2300-702c-4b38-8b2f-d56326ae460b"}"#)
+            .create();
+
+        let _n = mock("GET", "/filename.png")
+            .with_status(200)
+            .with_body(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+            .create();
+
+        let mut n = build_notification();
+        let u = format!("{}/filename.png", server_url());
+
+        let a = Attachment::from_url(&u).await?;
+        assert_eq!("filename.png", a.filename);
+        assert_eq!("image/png", a.mime_type);
+        assert!(a.content.len() > 0);
+
+        n.attach(&a);
+
+        let res = n.send().await?;
+        assert_eq!(1, res.status);
+        assert_eq!("647d2300-702c-4b38-8b2f-d56326ae460b", res.request);
+        Ok(())
     }
 }

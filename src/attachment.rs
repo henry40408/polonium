@@ -12,13 +12,13 @@ pub(crate) enum AttachmentError {
 }
 
 pub(crate) struct Attachment {
-    filename: String,
-    mime_type: String,
-    content: Vec<u8>,
+    pub(crate) filename: String,
+    pub(crate) mime_type: String,
+    pub(crate) content: Vec<u8>,
 }
 
 impl Attachment {
-    fn new(filename: &str, mime_type: &str, content: &[u8]) -> Self {
+    pub(crate) fn new(filename: &str, mime_type: &str, content: &[u8]) -> Self {
         Self {
             filename: filename.into(),
             mime_type: mime_type.into(),
@@ -26,7 +26,7 @@ impl Attachment {
         }
     }
 
-    async fn from_url(url: &str) -> Result<Self, AttachmentError> {
+    pub(crate) async fn from_url(url: &str) -> Result<Self, AttachmentError> {
         let parsed = Url::parse(url)?;
         let filename = parsed
             .path_segments()
@@ -53,13 +53,6 @@ mod tests {
     #[test]
     fn test_attachment_new() {
         Attachment::new("filename", "plain/text", &[]);
-    }
-
-    #[test]
-    fn test_attach() {
-        let mut n = build_notification();
-        let a = Attachment::new("filename", "plain/text", &[]);
-        n.attach(&a);
     }
 
     #[tokio::test]
