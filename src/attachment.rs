@@ -1,24 +1,34 @@
 use thiserror::Error;
 use url::Url;
 
+/// Attachment error
 #[derive(Error, Debug)]
-pub(crate) enum AttachmentError {
+pub enum AttachmentError {
+    /// Error from [`reqwest`] crate
     #[error("reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
+    /// Error from [`url`] crate
     #[error("URL error: {0}")]
-    UrlError(#[from] url::ParseError),
+    Url(#[from] url::ParseError),
+    /// Failed to infer MIME type, no extra information included
     #[error("unknown MIME type")]
-    MIMEInferError,
+    Infer,
 }
 
-pub(crate) struct Attachment {
+/// Attachment
+#[derive(Debug)]
+pub struct Attachment {
+    /// Required. Filename
     pub(crate) filename: String,
+    /// Required. MIME type, inferred when attached from URL
     pub(crate) mime_type: String,
+    /// Required. Attachment content
     pub(crate) content: Vec<u8>,
 }
 
 impl Attachment {
-    pub(crate) fn new(filename: &str, mime_type: &str, content: &[u8]) -> Self {
+    /// Creates an [`Attachment`]
+    pub fn new(filename: &str, mime_type: &str, content: &[u8]) -> Self {
         Self {
             filename: filename.into(),
             mime_type: mime_type.into(),
@@ -26,7 +36,8 @@ impl Attachment {
         }
     }
 
-    pub(crate) async fn from_url(url: &str) -> Result<Self, AttachmentError> {
+    /// Creates an [`Attachment`] with URL
+    pub async fn from_url(url: &str) -> Result<Self, AttachmentError> {
         let parsed = Url::parse(url)?;
         let filename = parsed
             .path_segments()
@@ -35,7 +46,7 @@ impl Attachment {
         let res = reqwest::get(url).await?;
         let buffer = res.bytes().await?.to_vec();
 
-        let mime_type = infer::get(&buffer).ok_or(AttachmentError::MIMEInferError)?;
+        let mime_type = infer::get(&buffer).ok_or(AttachmentError::Infer)?;
 
         Ok(Self {
             filename: filename.to_string(),

@@ -20,79 +20,80 @@ use thiserror::Error;
 
 mod attachment;
 
-use attachment::{Attachment, AttachmentError};
+pub use attachment::{Attachment, AttachmentError};
 
-/// Request to Pushover
-/// ref: https://pushover.net/api#messages
-#[derive(Default)]
-struct Request<'a> {
-    /// Required. API token
+/// Pushover API request <https://pushover.net/api#messages>
+#[derive(Default, Debug)]
+pub struct Request<'a> {
     token: Cow<'a, str>,
-    /// Required. User key
     user: Cow<'a, str>,
-    /// Required. Message
     message: Cow<'a, str>,
     /// Optional. Device
-    device: Option<Cow<'a, str>>,
+    pub device: Option<Cow<'a, str>>,
     /// Optional. Title
-    title: Option<Cow<'a, str>>,
+    pub title: Option<Cow<'a, str>>,
     /// Optional. Render as HTML?
-    html: Option<HTML>,
+    pub html: Option<HTML>,
     /// Optional. Render with monospace font?
-    monospace: Option<Monospace>,
+    pub monospace: Option<Monospace>,
     /// Optional. Message timestamp
-    timestamp: Option<u64>,
+    pub timestamp: Option<u64>,
     /// Optional. Priority
-    priority: Option<Priority>,
+    pub priority: Option<Priority>,
     /// Optional. URL
-    url: Option<Cow<'a, str>>,
+    pub url: Option<Cow<'a, str>>,
     /// Optional. URL title
-    url_title: Option<Cow<'a, str>>,
+    pub url_title: Option<Cow<'a, str>>,
     /// Optional. Sound
-    sound: Option<Sound>,
+    pub sound: Option<Sound>,
 }
 
-/// Render in HTML
-/// ref: https://pushover.net/api#html
-#[derive(strum::ToString)]
-enum HTML {
+/// Render in HTML <https://pushover.net/api#html>
+#[derive(Clone, Copy, Debug, strum::ToString)]
+pub enum HTML {
+    /// Displayed in plain text
     #[strum(serialize = "0")]
     None,
+    /// Displayed in HTML
     #[strum(serialize = "1")]
     Enabled,
 }
 
-/// Render with monospace
-/// ref: https://pushover.net/api#html
-#[derive(strum::ToString)]
-enum Monospace {
+/// Render with monospace <https://pushover.net/api#html>
+#[derive(Clone, Copy, Debug, strum::ToString)]
+pub enum Monospace {
+    /// Displayed in normal font
     #[strum(serialize = "0")]
     None,
+    /// Displayed in monospace font
     #[strum(serialize = "1")]
     Enabled,
 }
 
-/// Priority
-/// ref: https://pushover.net/api#priority
-#[derive(strum::ToString)]
-enum Priority {
+/// Priority <https://pushover.net/api#priority>
+#[derive(Clone, Copy, Debug, strum::ToString)]
+pub enum Priority {
+    /// Normal priority
     #[strum(serialize = "0")]
     Normal,
+    /// Lowest priority
     #[strum(serialize = "-2")]
     Lowest,
+    /// Low priority
     #[strum(serialize = "-1")]
     Low,
+    /// High priority
     #[strum(serialize = "1")]
     High,
+    /// Emergency priority
     #[strum(serialize = "2")]
     Emergency,
 }
 
-/// Sound
-/// ref: https://pushover.net/api#sounds
-#[derive(strum::ToString)]
+/// Sound <https://pushover.net/api#sounds>
+#[derive(Clone, Copy, Debug, strum::ToString)]
 #[strum(serialize_all = "lowercase")]
-enum Sound {
+pub enum Sound {
     /// pushover - Pushover (default)
     Pushover,
     /// bike - Bike
@@ -141,18 +142,23 @@ enum Sound {
     None,
 }
 
+/// Notification error
 #[derive(Error, Debug)]
-enum NotificationError {
+pub enum NotificationError {
+    /// Error from [`reqwest`] crate
     #[error("reqwest error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
+    Reqwest(#[from] reqwest::Error),
+    /// Error from [`serde_json`] crate
     #[error("deserialization error: {0}")]
-    DeserializeError(#[from] serde_json::Error),
+    Deserialize(#[from] serde_json::Error),
+    /// Wrapped [`crate::AttachmentError`]
     #[error("attachment error: {0}")]
-    AttachmentError(#[from] AttachmentError),
+    Attachment(#[from] AttachmentError),
 }
 
-#[derive(Default)]
-struct Notification<'a> {
+/// Request wrapped with attachment
+#[derive(Default, Debug)]
+pub struct Notification<'a> {
     request: Request<'a>,
     attachment: Option<&'a Attachment>,
 }
@@ -168,7 +174,8 @@ fn server_url() -> String {
 }
 
 impl<'a> Notification<'a> {
-    fn new(token: &'a str, user: &'a str, message: &'a str) -> Self {
+    /// Creates a [`Notification`]
+    pub fn new(token: &'a str, user: &'a str, message: &'a str) -> Self {
         Self {
             request: Request {
                 token: token.into(),
@@ -180,11 +187,13 @@ impl<'a> Notification<'a> {
         }
     }
 
-    fn attach(&mut self, attachment: &'a Attachment) {
+    /// Attach an [`Attachment`]
+    pub fn attach(&mut self, attachment: &'a Attachment) {
         self.attachment = Some(attachment);
     }
 
-    async fn send(&'a self) -> Result<Response, NotificationError> {
+    /// Send [`Request`] to Pushover API
+    pub async fn send(&'a self) -> Result<Response, NotificationError> {
         let form = multipart::Form::new()
             .text("token", self.request.token.to_string())
             .text("user", self.request.user.to_string())
@@ -220,7 +229,7 @@ impl<'a> Notification<'a> {
             .await?;
         match serde_json::from_str(&body) {
             Ok(r) => Ok(r),
-            Err(e) => Err(NotificationError::DeserializeError(e)),
+            Err(e) => Err(NotificationError::Deserialize(e)),
         }
     }
 
@@ -237,11 +246,15 @@ impl<'a> Notification<'a> {
     }
 }
 
-#[derive(Deserialize)]
-struct Response {
-    status: u8,
-    request: String,
-    errors: Option<Vec<String>>,
+/// Pushover API response <https://pushover.net/api#response>
+#[derive(Debug, Deserialize)]
+pub struct Response {
+    /// Status, 1 if success
+    pub status: u8,
+    /// Randomly generated unique token associated with request
+    pub request: String,
+    /// Array of string if any error occurred
+    pub errors: Option<Vec<String>>,
 }
 
 #[cfg(test)]
