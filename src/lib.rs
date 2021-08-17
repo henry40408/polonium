@@ -14,7 +14,7 @@
 
 use std::borrow::Cow;
 
-use reqwest::multipart;
+use reqwest::{multipart, Url};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -137,26 +137,54 @@ enum Sound {
     None,
 }
 
-struct Attachment<'a> {
-    filename: Cow<'a, str>,
-    mime_type: Cow<'a, str>,
-    content: &'a [u8],
+#[derive(Error, Debug)]
+enum AttachmentError {
+    #[error("reqwest error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("URL error: {0}")]
+    UrlError(#[from] url::ParseError),
+    #[error("unknown MIME type")]
+    MIMEInferError,
 }
 
-impl<'a> Attachment<'a> {
-    fn new(filename: &'a str, mime_type: &'a str, content: &'a [u8]) -> Self {
+struct Attachment {
+    filename: String,
+    mime_type: String,
+    content: Vec<u8>,
+}
+
+impl Attachment {
+    fn new(filename: &str, mime_type: &str, content: &[u8]) -> Self {
         Self {
             filename: filename.into(),
             mime_type: mime_type.into(),
-            content,
+            content: content.into(),
         }
+    }
+
+    async fn from_url(url: &str) -> Result<Self, AttachmentError> {
+        let parsed = Url::parse(url)?;
+        let filename = parsed
+            .path_segments()
+            .map_or("filename", |t| t.last().map_or("filename", |t1| t1));
+
+        let res = reqwest::get(url).await?;
+        let buffer = res.bytes().await?.to_vec();
+
+        let mime_type = infer::get(&buffer).ok_or(AttachmentError::MIMEInferError)?;
+
+        Ok(Self {
+            filename: filename.to_string(),
+            mime_type: mime_type.to_string(),
+            content: buffer,
+        })
     }
 }
 
 #[derive(Default)]
 struct Notification<'a> {
     request: Request<'a>,
-    attachment: Option<&'a Attachment<'a>>,
+    attachment: Option<&'a Attachment>,
 }
 
 #[cfg(test)]
@@ -183,16 +211,16 @@ impl<'a> Notification<'a> {
     fn new(token: &'a str, user: &'a str, message: &'a str) -> Self {
         Self {
             request: Request {
-                token: Cow::from(token),
-                user: Cow::from(user),
-                message: Cow::from(message),
+                token: token.into(),
+                user: user.into(),
+                message: message.into(),
                 ..Default::default()
             },
             ..Default::default()
         }
     }
 
-    fn attach(&mut self, attachment: &'a Attachment<'a>) {
+    fn attach(&mut self, attachment: &'a Attachment) {
         self.attachment = Some(attachment);
     }
 
@@ -251,7 +279,10 @@ struct Response {
 mod tests {
     use mockito::mock;
 
-    use crate::{Attachment, Monospace, Notification, NotificationError, Priority, Sound, HTML};
+    use crate::{
+        Attachment, AttachmentError, Monospace, Notification, NotificationError, Priority, Sound,
+        HTML,
+    };
 
     #[test]
     fn test_new() {
@@ -355,5 +386,15 @@ mod tests {
         let mut n = build_notification();
         let a = Attachment::new("filename", "plain/text", &[]);
         n.attach(&a);
+    }
+
+    #[tokio::test]
+    async fn test_attach_url() -> Result<(), AttachmentError> {
+        let u = "https://upload.wikimedia.org/wikipedia/commons/1/1a/1x1_placeholder.png";
+        let a = Attachment::from_url(u).await?;
+        assert_eq!("1x1_placeholder.png", a.filename);
+        assert_eq!("image/png", a.mime_type);
+        assert!(a.content.len() > 0);
+        Ok(())
     }
 }
