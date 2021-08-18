@@ -28,69 +28,69 @@ pub struct Request<'a> {
     token: Cow<'a, str>,
     user: Cow<'a, str>,
     message: Cow<'a, str>,
-    /// Optional. Device
+    /// Optional. your user's device name to send the message directly to that device, rather than all of the user's devices (multiple devices may be separated by a comma) <https://pushover.net/api#identifiers>
     pub device: Option<Cow<'a, str>>,
-    /// Optional. Title
+    /// Optional. your message's title, otherwise your app's name is used <https://pushover.net/api#messages>
     pub title: Option<Cow<'a, str>>,
-    /// Optional. Render as HTML?
+    /// Optional. To enable HTML formatting <https://pushover.net/api#html>
     pub html: Option<HTML>,
-    /// Optional. Render with monospace font?
+    /// Optional. To enable monospace messages <https://pushover.net/api#html>
     pub monospace: Option<Monospace>,
-    /// Optional. Message timestamp
+    /// Optional. Messages are stored on the Pushover servers with a timestamp of when they were initially received through the API <https://pushover.net/api#html>
     pub timestamp: Option<u64>,
-    /// Optional. Priority
+    /// Optional. Messages may be sent with a different priority that affects how the message is presented to the user <https://pushover.net/api#priority>
     pub priority: Option<Priority>,
-    /// Optional. URL
+    /// Optional. The Pushover device clients automatically turn URLs found in message bodies into clickable links that open in the device's browser <https://pushover.net/api#urls>
     pub url: Option<Cow<'a, str>>,
-    /// Optional. URL title
+    /// Optional. The Pushover device clients automatically turn URLs found in message bodies into clickable links that open in the device's browser <https://pushover.net/api#urls>
     pub url_title: Option<Cow<'a, str>>,
-    /// Optional. Sound
+    /// Optional. Users can choose from a number of different default sounds to play when receiving notifications <https://pushover.net/api#sounds>
     pub sound: Option<Sound>,
 }
 
-/// Render in HTML <https://pushover.net/api#html>
+/// To enable HTML formatting <https://pushover.net/api#html>
 #[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 pub enum HTML {
-    /// Displayed in plain text
+    /// Plain text
     #[strum(serialize = "0")]
     None,
-    /// Displayed in HTML
+    /// HTML
     #[strum(serialize = "1")]
     Enabled,
 }
 
-/// Render with monospace <https://pushover.net/api#html>
+/// To enable monospace messages <https://pushover.net/api#html>
 #[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 pub enum Monospace {
-    /// Displayed in normal font
+    /// Normal
     #[strum(serialize = "0")]
     None,
-    /// Displayed in monospace font
+    /// Monospace
     #[strum(serialize = "1")]
     Enabled,
 }
 
-/// Priority <https://pushover.net/api#priority>
+/// Messages may be sent with a different priority that affects how the message is presented to the user <https://pushover.net/api#priority>
 #[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 pub enum Priority {
-    /// Normal priority
+    /// Normal
     #[strum(serialize = "0")]
     Normal,
-    /// Lowest priority
+    /// Lowest
     #[strum(serialize = "-2")]
     Lowest,
-    /// Low priority
+    /// Low
     #[strum(serialize = "-1")]
     Low,
-    /// High priority
+    /// High
     #[strum(serialize = "1")]
     High,
-    /// Emergency priority
+    /// Emergency
     #[strum(serialize = "2")]
     Emergency,
 }
 
-/// Sound <https://pushover.net/api#sounds>
+/// Users can choose from a number of different default sounds to play when receiving notifications <https://pushover.net/api#sounds>
 #[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Sound {
@@ -250,11 +250,11 @@ impl<'a> Notification<'a> {
 /// Pushover API response <https://pushover.net/api#response>
 #[derive(Debug, Deserialize)]
 pub struct Response {
-    /// Status, 1 if success
+    /// If POST request to API was valid, we will receive an HTTP 200 (OK) status, with a JSON object containing a status code of `1`.
     pub status: u8,
-    /// Randomly generated unique token associated with request
+    /// The `request` parameter returned from all API calls is a randomly-generated unique token that we have associated with your request.
     pub request: String,
-    /// Array of string if any error occurred
+    /// …and an `errors` array detailing which parameters were invalid
     pub errors: Option<Vec<String>>,
 }
 
