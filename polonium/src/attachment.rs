@@ -1,9 +1,15 @@
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 use thiserror::Error;
 use url::Url;
 
 /// Attachment error
 #[derive(Error, Debug)]
 pub enum AttachmentError {
+    /// Error from [`std::io`]
+    #[error("IO error: {0}")]
+    IO(#[from] std::io::Error),
     /// Error from [`reqwest`] crate
     #[error("reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
@@ -34,6 +40,18 @@ impl Attachment {
             mime_type: mime_type.into(),
             content: content.into(),
         }
+    }
+
+    /// Creates an [`Attachment`] with path
+    pub async fn from_path(path: &PathBuf) -> Result<Self, AttachmentError> {
+        let mut buffer = Vec::new();
+        let mut handle = File::open(path)?;
+        handle.read_to_end(&mut buffer)?;
+        let filename = path
+            .file_name()
+            .map_or("filename", |t| t.to_str().map_or("filename", |t| t));
+        let mime_type = infer::get(&buffer).ok_or(AttachmentError::Infer)?;
+        Ok(Self::new(filename, mime_type.mime_type(), &buffer))
     }
 
     /// Creates an [`Attachment`] with URL

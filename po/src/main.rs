@@ -12,7 +12,8 @@
 
 //! Po is a command line application based on Polonium
 
-use polonium::{Notification, HTML};
+use polonium::{Attachment, Notification, HTML};
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -33,19 +34,31 @@ struct Opts {
     /// render as HTML?
     #[structopt(long)]
     html: bool,
+    /// attach file
+    #[structopt(short, long)]
+    file: Option<PathBuf>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::from_args();
 
-    let mut n = Notification::new(&opts.token, &opts.user, &opts.message);
+    let mut notification = Notification::new(&opts.token, &opts.user, &opts.message);
 
+    // set extra options
     if opts.html {
-        n.request.html = Some(HTML::Enabled);
+        notification.request.html = Some(HTML::Enabled);
     }
 
-    let res = n.send().await?;
+    // send request with file as attachment
+    let attachment;
+    if let Some(p) = &opts.file {
+        attachment = Attachment::from_path(p).await?;
+        notification.attach(&attachment);
+    }
+
+    // send request
+    let res = notification.send().await?;
     if opts.verbose {
         println!("{:?}", res);
     }
