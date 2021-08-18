@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::Path;
 use thiserror::Error;
 use url::Url;
 
@@ -43,7 +43,7 @@ impl Attachment {
     }
 
     /// Creates an [`Attachment`] with path
-    pub async fn from_path(path: &PathBuf) -> Result<Self, AttachmentError> {
+    pub async fn from_path(path: &Path) -> Result<Self, AttachmentError> {
         let mut buffer = Vec::new();
         let mut handle = File::open(path)?;
         handle.read_to_end(&mut buffer)?;
