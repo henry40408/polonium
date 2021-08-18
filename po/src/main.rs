@@ -12,8 +12,9 @@
 
 //! Po is a command line application based on Polonium
 
-use polonium::{Attachment, Monospace, Notification, HTML};
+use polonium::{Attachment, Monospace, Notification, Priority, Sound, HTML};
 use std::path::PathBuf;
+use std::str::FromStr;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -49,6 +50,18 @@ struct Opts {
     /// attach file as notification attachment
     #[structopt(short, long)]
     file: Option<PathBuf>,
+    /// Messages may be sent with a different priority that affects how the message is presented to the user e.g. -2, -1, 0, 1, 2 <https://pushover.net/api#priority>
+    #[structopt(long)]
+    priority: Option<String>,
+    /// Users can choose from a number of different default sounds to play when receiving notifications <https://pushover.net/api#sounds>
+    #[structopt(long)]
+    sound: Option<String>,
+    /// a supplementary URL to show with your message <https://pushover.net/api#urls>
+    #[structopt(long)]
+    url: Option<String>,
+    /// a title for your supplementary URL, otherwise just the URL is shown <https://pushover.net/api#urls>
+    #[structopt(long)]
+    url_title: Option<String>,
 }
 
 #[tokio::main]
@@ -66,6 +79,18 @@ async fn main() -> anyhow::Result<()> {
     }
     if let Some(ref t) = opts.timestamp {
         notification.request.timestamp = Some(*t);
+    }
+    if let Some(ref p) = opts.priority {
+        notification.request.priority = Some(Priority::from_str(p)?);
+    }
+    if let Some(ref s) = opts.sound {
+        notification.request.sound = Some(Sound::from_str(s)?);
+    }
+    if let Some(ref u) = opts.url {
+        notification.request.url = Some(u.into());
+        if let Some(ref t) = opts.url_title {
+            notification.request.url_title = Some(t.into());
+        }
     }
 
     if opts.html {

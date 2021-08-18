@@ -28,23 +28,23 @@ pub struct Request<'a> {
     token: Cow<'a, str>,
     user: Cow<'a, str>,
     message: Cow<'a, str>,
-    /// Optional. your user's device name to send the message directly to that device, rather than all of the user's devices (multiple devices may be separated by a comma) <https://pushover.net/api#identifiers>
+    /// your user's device name to send the message directly to that device, rather than all of the user's devices (multiple devices may be separated by a comma) <https://pushover.net/api#identifiers>
     pub device: Option<Cow<'a, str>>,
-    /// Optional. your message's title, otherwise your app's name is used <https://pushover.net/api#messages>
+    /// your message's title, otherwise your app's name is used <https://pushover.net/api#messages>
     pub title: Option<Cow<'a, str>>,
-    /// Optional. To enable HTML formatting <https://pushover.net/api#html>
+    /// To enable HTML formatting <https://pushover.net/api#html>
     pub html: Option<HTML>,
-    /// Optional. To enable monospace messages <https://pushover.net/api#html>
+    /// To enable monospace messages <https://pushover.net/api#html>
     pub monospace: Option<Monospace>,
-    /// Optional. Messages are stored on the Pushover servers with a timestamp of when they were initially received through the API <https://pushover.net/api#html>
+    /// Messages are stored on the Pushover servers with a timestamp of when they were initially received through the API <https://pushover.net/api#html>
     pub timestamp: Option<u64>,
-    /// Optional. Messages may be sent with a different priority that affects how the message is presented to the user <https://pushover.net/api#priority>
+    /// Messages may be sent with a different priority that affects how the message is presented to the user <https://pushover.net/api#priority>
     pub priority: Option<Priority>,
-    /// Optional. The Pushover device clients automatically turn URLs found in message bodies into clickable links that open in the device's browser <https://pushover.net/api#urls>
+    /// a supplementary URL to show with your message <https://pushover.net/api#urls>
     pub url: Option<Cow<'a, str>>,
-    /// Optional. The Pushover device clients automatically turn URLs found in message bodies into clickable links that open in the device's browser <https://pushover.net/api#urls>
+    /// a title for your supplementary URL, otherwise just the URL is shown <https://pushover.net/api#urls>
     pub url_title: Option<Cow<'a, str>>,
-    /// Optional. Users can choose from a number of different default sounds to play when receiving notifications <https://pushover.net/api#sounds>
+    /// Users can choose from a number of different default sounds to play when receiving notifications <https://pushover.net/api#sounds>
     pub sound: Option<Sound>,
 }
 
