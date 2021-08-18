@@ -49,7 +49,7 @@ pub struct Request<'a> {
 }
 
 /// Render in HTML <https://pushover.net/api#html>
-#[derive(Clone, Copy, Debug, strum::ToString)]
+#[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 pub enum HTML {
     /// Displayed in plain text
     #[strum(serialize = "0")]
@@ -60,7 +60,7 @@ pub enum HTML {
 }
 
 /// Render with monospace <https://pushover.net/api#html>
-#[derive(Clone, Copy, Debug, strum::ToString)]
+#[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 pub enum Monospace {
     /// Displayed in normal font
     #[strum(serialize = "0")]
@@ -71,7 +71,7 @@ pub enum Monospace {
 }
 
 /// Priority <https://pushover.net/api#priority>
-#[derive(Clone, Copy, Debug, strum::ToString)]
+#[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 pub enum Priority {
     /// Normal priority
     #[strum(serialize = "0")]
@@ -91,7 +91,7 @@ pub enum Priority {
 }
 
 /// Sound <https://pushover.net/api#sounds>
-#[derive(Clone, Copy, Debug, strum::ToString)]
+#[derive(Clone, Copy, Debug, PartialEq, strum::ToString, strum::EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Sound {
     /// pushover - Pushover (default)
@@ -261,6 +261,7 @@ pub struct Response {
 #[cfg(test)]
 mod tests {
     use mockito::mock;
+    use std::str::FromStr;
 
     use crate::attachment::Attachment;
     use crate::{server_url, Monospace, Notification, NotificationError, Priority, Sound, HTML};
@@ -310,51 +311,87 @@ mod tests {
     }
 
     #[test]
-    fn test_html() {
+    fn test_html() -> Result<(), strum::ParseError> {
         assert_eq!("0", HTML::None.to_string());
+        assert_eq!(HTML::None, HTML::from_str("0")?);
         assert_eq!("1", HTML::Enabled.to_string());
+        assert_eq!(HTML::Enabled, HTML::from_str("1")?);
+        Ok(())
     }
 
     #[test]
-    fn test_monospace() {
+    fn test_monospace() -> Result<(), strum::ParseError> {
         assert_eq!("0", Monospace::None.to_string());
+        assert_eq!(Monospace::None, Monospace::from_str("0")?);
         assert_eq!("1", Monospace::Enabled.to_string());
+        assert_eq!(Monospace::Enabled, Monospace::from_str("1")?);
+        Ok(())
     }
 
     #[test]
-    fn test_priority() {
+    fn test_priority() -> Result<(), strum::ParseError> {
         assert_eq!("-2", Priority::Lowest.to_string());
+        assert_eq!(Priority::Lowest, Priority::from_str("-2")?);
         assert_eq!("-1", Priority::Low.to_string());
+        assert_eq!(Priority::Low, Priority::from_str("-1")?);
         assert_eq!("0", Priority::Normal.to_string());
+        assert_eq!(Priority::Normal, Priority::from_str("0")?);
         assert_eq!("1", Priority::High.to_string());
+        assert_eq!(Priority::High, Priority::from_str("1")?);
         assert_eq!("2", Priority::Emergency.to_string());
+        assert_eq!(Priority::Emergency, Priority::from_str("2")?);
+        Ok(())
     }
 
     #[test]
-    fn test_sound() {
+    fn test_sound() -> Result<(), strum::ParseError> {
         assert_eq!("pushover", Sound::Pushover.to_string());
+        assert_eq!(Sound::Pushover, Sound::from_str("pushover")?);
         assert_eq!("bike", Sound::Bike.to_string());
+        assert_eq!(Sound::Bike, Sound::from_str("bike")?);
         assert_eq!("bugle", Sound::Bugle.to_string());
+        assert_eq!(Sound::Bugle, Sound::from_str("bugle")?);
         assert_eq!("cashregister", Sound::CashRegister.to_string());
+        assert_eq!(Sound::CashRegister, Sound::from_str("cashregister")?);
         assert_eq!("classical", Sound::Classical.to_string());
+        assert_eq!(Sound::Classical, Sound::from_str("classical")?);
         assert_eq!("cosmic", Sound::Cosmic.to_string());
+        assert_eq!(Sound::Cosmic, Sound::from_str("cosmic")?);
         assert_eq!("falling", Sound::Falling.to_string());
+        assert_eq!(Sound::Falling, Sound::from_str("falling")?);
         assert_eq!("gamelan", Sound::GameLan.to_string());
+        assert_eq!(Sound::GameLan, Sound::from_str("gamelan")?);
         assert_eq!("incoming", Sound::Incoming.to_string());
+        assert_eq!(Sound::Incoming, Sound::from_str("incoming")?);
         assert_eq!("intermission", Sound::Intermission.to_string());
+        assert_eq!(Sound::Intermission, Sound::from_str("intermission")?);
         assert_eq!("magic", Sound::Magic.to_string());
+        assert_eq!(Sound::Magic, Sound::from_str("magic")?);
         assert_eq!("mechanical", Sound::Mechanical.to_string());
+        assert_eq!(Sound::Mechanical, Sound::from_str("mechanical")?);
         assert_eq!("pianobar", Sound::PianoBar.to_string());
+        assert_eq!(Sound::PianoBar, Sound::from_str("pianobar")?);
         assert_eq!("siren", Sound::Siren.to_string());
+        assert_eq!(Sound::Siren, Sound::from_str("siren")?);
         assert_eq!("spacealarm", Sound::SpaceAlarm.to_string());
+        assert_eq!(Sound::SpaceAlarm, Sound::from_str("spacealarm")?);
         assert_eq!("tugboat", Sound::Tugboat.to_string());
+        assert_eq!(Sound::Tugboat, Sound::from_str("tugboat")?);
         assert_eq!("alien", Sound::Alien.to_string());
+        assert_eq!(Sound::Alien, Sound::from_str("alien")?);
         assert_eq!("climb", Sound::Climb.to_string());
+        assert_eq!(Sound::Climb, Sound::from_str("climb")?);
         assert_eq!("persistent", Sound::Persistent.to_string());
+        assert_eq!(Sound::Persistent, Sound::from_str("persistent")?);
         assert_eq!("echo", Sound::Echo.to_string());
+        assert_eq!(Sound::Echo, Sound::from_str("echo")?);
         assert_eq!("updown", Sound::UpDown.to_string());
+        assert_eq!(Sound::UpDown, Sound::from_str("updown")?);
         assert_eq!("vibrate", Sound::Vibrate.to_string());
+        assert_eq!(Sound::Vibrate, Sound::from_str("vibrate")?);
         assert_eq!("none", Sound::None.to_string());
+        assert_eq!(Sound::None, Sound::from_str("none")?);
+        Ok(())
     }
 
     #[tokio::test]
