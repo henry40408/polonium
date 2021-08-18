@@ -1,4 +1,10 @@
 [workspace]
 members = [
+    "po",
     "polonium"
 ]
+
+[profile.release]
+lto = true
+opt-level = "z"
+panic = "abort"
