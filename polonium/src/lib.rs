@@ -159,7 +159,8 @@ pub enum NotificationError {
 /// Request wrapped with attachment
 #[derive(Default, Debug)]
 pub struct Notification<'a> {
-    request: Request<'a>,
+    /// Actual request sent to Pushover API
+    pub request: Request<'a>,
     attachment: Option<&'a Attachment>,
 }
 

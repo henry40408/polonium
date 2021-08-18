@@ -12,7 +12,7 @@
 
 //! Po is a command line application based on Polonium
 
-use polonium::Notification;
+use polonium::{Notification, HTML};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -30,13 +30,21 @@ struct Opts {
     /// verbose
     #[structopt(short, long)]
     verbose: bool,
+    /// render as HTML?
+    #[structopt(long)]
+    html: bool,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::from_args();
 
-    let n = Notification::new(&opts.token, &opts.user, &opts.message);
+    let mut n = Notification::new(&opts.token, &opts.user, &opts.message);
+
+    if opts.html {
+        n.request.html = Some(HTML::Enabled);
+    }
+
     let res = n.send().await?;
     if opts.verbose {
         println!("{:?}", res);
