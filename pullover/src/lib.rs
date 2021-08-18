@@ -10,7 +10,7 @@
     unused_qualifications
 )]
 
-//! Polonium is Pushover API wrapper with attachment support in Rust 2018 edition
+//! Pullover is Pushover API wrapper with attachment support in Rust 2018 edition
 
 use std::borrow::Cow;
 

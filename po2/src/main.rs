@@ -10,9 +10,9 @@
     unused_qualifications
 )]
 
-//! Po is a command line application based on Polonium
+//! po2 is a command line application based on Pullover
 
-use polonium::{Attachment, Monospace, Notification, Priority, Sound, HTML};
+use pullover::{Attachment, Monospace, Notification, Priority, Sound, HTML};
 use std::path::PathBuf;
 use std::str::FromStr;
 use structopt::StructOpt;

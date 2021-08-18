@@ -530,28 +530,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
-name = "po"
+name = "po2"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "polonium",
+ "pullover",
  "structopt",
  "tokio",
-]
-
-[[package]]
-name = "polonium"
-version = "0.1.0"
-dependencies = [
- "infer",
- "mockito",
- "reqwest",
- "serde",
- "serde_json",
- "strum",
- "thiserror",
- "tokio",
- "url",
 ]
 
 [[package]]
@@ -603,6 +588,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c7ed8b8c7b886ea3ed7dde405212185f423ab44682667c8c6dd14aa1d9f6612"
 dependencies = [
  "unicode-xid",
+]
+
+[[package]]
+name = "pullover"
+version = "0.1.0"
+dependencies = [
+ "infer",
+ "mockito",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "strum",
+ "thiserror",
+ "tokio",
+ "url",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-# Polonium
+# Pullover
 
 Pushover API wrapper with attachment support in Rust 2018 edition.
 
